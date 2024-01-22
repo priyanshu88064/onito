@@ -1,21 +1,55 @@
-import { Box, Button, Grid, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, Button, FormHelperText, Grid, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
 import React from "react";
 import { SubmitHandler, useForm,Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
+const phoneRegex = /^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[789]\d{9}$/;
+
+const dateOrAgeValidator = (data: string | undefined)=>{
+    
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+
+    if(data == undefined){
+        return false;
+    }
+
+    if (dateRegex.test(data)) {
+        const date = new Date(data);
+        if (!isNaN(date.getTime())) {
+            return true;
+        }
+    }
+
+    const age = parseInt(data);
+    if (!isNaN(age) && age > 0 && /^\d+$/.test(data)) {
+      return true;
+    }
+
+    return false;
+}
+
 interface IFormInput {
     name:string;
     number:string;
     dobOrAge:string;
-    sex:"None" | "Male"|"Female"|"Other";
-    idType:"None" | "Aadhar" | "PAN";
+    sex:string;
+    idType:string;
     id:string;
 }
 
+const schema = yup.object({
+    name:yup.string().min(3,"Minimum length should be 3").required("Name is Required"),
+    number:yup.string().matches(phoneRegex,"Enter a valid indian number").required(),
+    dobOrAge:yup.string().test('dateOrAge','Enter a valid date or age',dateOrAgeValidator).required(),
+    sex:yup.string().matches(/(Male|Female)/).required(),
+    idType:yup.string().matches(/(Aadhar|PAN)/).required(),
+    id:yup.string().length(3,"Name is Required").required()
+});
+
 function Personal(){
 
-    const {control,handleSubmit} = useForm<IFormInput>({
+    const {control,handleSubmit,formState:{errors}} = useForm<IFormInput>({
         defaultValues:{
             name:"",
             number:"",
@@ -23,7 +57,8 @@ function Personal(){
             sex:"None",
             idType:"None",
             id:""
-        }
+        },
+        resolver:yupResolver(schema)
     });
 
     const submit:SubmitHandler<IFormInput> = (data)=>{
@@ -68,7 +103,13 @@ function Personal(){
                             control={control}
                             name="name"
                             render={({field})=>(
-                                <TextField size="small" placeholder="Enter Name" {...field}/>
+                                <TextField
+                                    size="small"
+                                    placeholder="Enter Name"
+                                    {...field} 
+                                    error={errors.name?.message?true:false}
+                                    helperText={errors.name?.message}    
+                                />
                             )}
                         />
                     </Box>
@@ -85,7 +126,13 @@ function Personal(){
                             control={control}
                             name="number"
                             render={({field})=>(
-                                <TextField type="tel" size="small" placeholder="Enter Mobile" {...field}/>
+                                <TextField 
+                                    size="small" 
+                                    placeholder="Enter Mobile" 
+                                    {...field}
+                                    error={errors.number?.message?true:false}
+                                    helperText={errors.number?.message}
+                                />
                             )}
                         />
                     </Box>
@@ -109,7 +156,13 @@ function Personal(){
                             control={control}
                             name="dobOrAge"
                             render={({field})=>(
-                                <TextField size="small" placeholder="DD/MM/YY or Age" {...field}/>
+                                <TextField 
+                                    size="small" 
+                                    placeholder="DD/MM/YY or Age" 
+                                    {...field}
+                                    error={errors.dobOrAge?.message?true:false}
+                                    helperText={errors.dobOrAge?.message}
+                                />
                             )}
                         />
                     </Box>
@@ -130,14 +183,14 @@ function Personal(){
                                 <Select
                                     size="small"
                                     {...field}
+                                    error={errors.sex?.message?true:false}
                                 >
                                     <MenuItem value={"None"}>Enter Sex</MenuItem>
                                     <MenuItem value={"Male"}>Male</MenuItem>
                                     <MenuItem value={"Female"}>Female</MenuItem>
-                                    <MenuItem value={"Other"}>Other</MenuItem>
                                 </Select>
                             )}
-                        />
+                            />
                     </Box>
                 </Box>
             </Box>
@@ -157,6 +210,7 @@ function Personal(){
                         <Select
                             size="small"
                             {...field}
+                            error={errors.idType?.message?true:false}
                         >
                             <MenuItem value={"None"}>ID Type</MenuItem>
                             <MenuItem value={"Aadhar"}>Aadhar</MenuItem>
@@ -191,11 +245,3 @@ function Personal(){
 }
 
 export default Personal;
-
-{/* <Controller
-    control={control}
-    name="id"
-    render={({field})=>(
-        <TextField size="small" placeholder="Enter ID" {...field}/>
-    )}
-/> */}
