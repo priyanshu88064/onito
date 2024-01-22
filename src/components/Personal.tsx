@@ -1,17 +1,20 @@
-import { Box, Button, FormHelperText, Grid, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, Button, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
 import React from "react";
 import { SubmitHandler, useForm,Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useDispatch } from "react-redux";
+import { addPersonalInfo, isSubmit } from "../slices/FormSlice";
+import { useNavigate } from "react-router-dom";
 
-const phoneRegex = /^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[789]\d{9}$/;
+const phoneRegex = /(^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[789]\d{9})$/;
 
 const dateOrAgeValidator = (data: string | undefined)=>{
     
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
 
-    if(data == undefined){
-        return false;
+    if(data === undefined){
+        return true;
     }
 
     if (dateRegex.test(data)) {
@@ -29,22 +32,38 @@ const dateOrAgeValidator = (data: string | undefined)=>{
     return false;
 }
 
+const aadharPanValidator = (data:string|undefined)=>{
+    
+    if(data === undefined || data === "" || data.length===0){
+        console.log("here")
+        return true;
+    }
+
+    const aadharRegex = /^[2-9]\d{11}$/;
+    const PANregex = /^[a-zA-Z0-9]{10}$/;
+
+    if(aadharRegex.test(data) || PANregex.test(data)){
+        return true;
+    }
+    return false;
+}
+
 interface IFormInput {
     name:string;
-    number:string;
+    number?:string;
     dobOrAge:string;
     sex:string;
-    idType:string;
-    id:string;
+    idType?:string;
+    id?:string;
 }
 
 const schema = yup.object({
     name:yup.string().min(3,"Minimum length should be 3").required("Name is Required"),
-    number:yup.string().matches(phoneRegex,"Enter a valid indian number").required(),
+    number:yup.string().matches(phoneRegex,"Enter a valid indian number"),
     dobOrAge:yup.string().test('dateOrAge','Enter a valid date or age',dateOrAgeValidator).required(),
     sex:yup.string().matches(/(Male|Female)/).required(),
-    idType:yup.string().matches(/(Aadhar|PAN)/).required(),
-    id:yup.string().length(3,"Name is Required").required()
+    idType:yup.string().matches(/(Aadhar|PAN)?/),
+    id:yup.string().test('id','Enter valid aadhar or PAN',aadharPanValidator)
 });
 
 function Personal(){
@@ -61,8 +80,13 @@ function Personal(){
         resolver:yupResolver(schema)
     });
 
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
     const submit:SubmitHandler<IFormInput> = (data)=>{
-        console.log(data);
+        dispatch(isSubmit(false));
+        dispatch(addPersonalInfo(data));
+        navigate("/address");
     }
 
     return (
@@ -222,7 +246,13 @@ function Personal(){
                     control={control}
                     name="id"
                     render={({field})=>(
-                        <TextField size="small" placeholder="Enter ID" {...field}/>
+                        <TextField 
+                        size="small" 
+                        placeholder="Enter ID" 
+                        {...field}
+                        error={errors.id?.message?true:false}
+                        helperText={errors.id?.message}    
+                    />
                     )}
                 />
             </Box>

@@ -3,20 +3,22 @@ import React, { useState } from "react";
 import { SubmitHandler, useForm,Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useDispatch } from "react-redux";
+import { addAddressInfo, countryAdd, isSubmit } from "../slices/FormSlice";
+import { useNavigate } from "react-router-dom";
 
 interface IFormInput {
-    Address:string;
-    State:string;
-    City:string;
-    Pincode:number|null;
+    Address?:string;
+    State?:string;
+    City?:string;
+    Pincode?:number|null;
 }
 
 const schema = yup.object({
-    Address:yup.string().required(),
-    State:yup.string().required(),
-    City:yup.string().required(),
-    Pincode:yup.number().required().nullable(),
-
+    Address:yup.string(),
+    State:yup.string(),
+    City:yup.string(),
+    Pincode:yup.number().typeError("Enter a number").nullable(),
 });
 
 function Address(){
@@ -37,6 +39,8 @@ function Address(){
     }
 
     const resolver = yupResolver<IFormInput>(schema);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     const {control,handleSubmit,formState:{errors}} = useForm<IFormInput>({
         defaultValues:{
@@ -49,7 +53,9 @@ function Address(){
     });
 
     const submit:SubmitHandler<IFormInput> = (data)=>{
-        console.log(data);
+        dispatch(isSubmit(true));
+        dispatch(addAddressInfo(data));
+        navigate("/");
     }
 
     return (
@@ -113,6 +119,7 @@ function Address(){
                             options={country}
                             onInputChange={(e,input)=>{
                                 fetchCountry(input);
+                                dispatch(countryAdd(input));
                             }}
                             sx={{ width: 230 }}
                             renderInput={(params) => <TextField
@@ -167,6 +174,8 @@ function Address(){
                             name="Pincode"
                             render={({field})=>(
                                 <TextField
+                                    error={errors.Pincode?.message?true:false}
+                                    helperText={errors.Pincode?.message}
                                     {...field}
                                     size="small"
                                     placeholder="Enter pincode"
